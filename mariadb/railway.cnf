@@ -1,0 +1,14 @@
+# Railway wrapper settings, loaded after the image's defaults.
+[mariadbd]
+# Keep the data in a subfolder of the volume (mounted at /var/lib/mysql),
+# so the volume's lost+found folder never shows up as a database.
+datadir = /var/lib/mysql/data
+# Connections come from Railway's private network: don't resolve client host names.
+skip-name-resolve
+# Fit comfortably in 0.5 GB of RAM (Railway's Free plan limit per service).
+innodb_buffer_pool_size = 128M
+innodb_log_buffer_size = 8M
+performance_schema = OFF
+max_connections = 50
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
