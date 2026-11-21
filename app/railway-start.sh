@@ -10,6 +10,15 @@
 set -eu
 
 DATA=/data
+# Start as root only to hand the volume to the unprivileged "daemon" user, then re-run as daemon.
+if [ "$(id -u)" = 0 ]; then
+  mkdir -p "$DATA"
+  chown -R daemon:daemon "$DATA"
+  exec su-exec daemon:daemon "$0" "$@"
+fi
+: "${WRITEFREELY_BIN:=/go/cmd/writefreely/writefreely}"
+: "${WRITEFREELY_ASSETS:=/go}"
+export WRITEFREELY_BIN
 CFG="$DATA/config.ini"
 : "${PORT:=8080}"
 : "${WRITEFREELY_DB_HOST:?WRITEFREELY_DB_HOST is not set (it should reference the MariaDB service)}"
@@ -19,7 +28,6 @@ case "$WRITEFREELY_HOST" in http://*|https://*) ;; *) WRITEFREELY_HOST="https://
 WRITEFREELY_HOST="${WRITEFREELY_HOST%/}"
 export WRITEFREELY_HOST
 
-mkdir -p "$DATA"
 cd "$DATA"
 
 if [ ! -s "$CFG" ]; then
@@ -32,9 +40,9 @@ bind                 = 0.0.0.0
 tls_cert_path        =
 tls_key_path         =
 autocert             = false
-templates_parent_dir = /usr/share/writefreely
-static_parent_dir    = /usr/share/writefreely
-pages_parent_dir     = /usr/share/writefreely
+templates_parent_dir = $WRITEFREELY_ASSETS
+static_parent_dir    = $WRITEFREELY_ASSETS
+pages_parent_dir     = $WRITEFREELY_ASSETS
 keys_parent_dir      = $DATA
 hash_seed            =
 gopher_port          = 0
@@ -95,9 +103,9 @@ ini_set() {
 ini_set server port "$PORT"
 ini_set server bind 0.0.0.0
 ini_set server keys_parent_dir "$DATA"
-ini_set server templates_parent_dir /usr/share/writefreely
-ini_set server static_parent_dir /usr/share/writefreely
-ini_set server pages_parent_dir /usr/share/writefreely
+ini_set server templates_parent_dir $WRITEFREELY_ASSETS
+ini_set server static_parent_dir $WRITEFREELY_ASSETS
+ini_set server pages_parent_dir $WRITEFREELY_ASSETS
 ini_set database type mysql
 ini_set database host "$WRITEFREELY_DB_HOST"
 ini_set database port "$WRITEFREELY_DB_PORT"
@@ -154,7 +162,7 @@ echo "railway: starting WriteFreely on port $PORT"
 # stop (even with exit status 0) ends the container with a non-zero status: Railway's
 # ON_FAILURE restart policy then starts it again.
 stopping=0
-/usr/bin/writefreely -c "$CFG" &
+"$WRITEFREELY_BIN" -c "$CFG" &
 pid=$!
 trap 'stopping=1; kill -TERM "$pid" 2>/dev/null' TERM INT
 code=0

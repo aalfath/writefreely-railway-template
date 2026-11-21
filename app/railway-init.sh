@@ -5,7 +5,7 @@ STATUS=/tmp/railway-init.status
 echo 1 > "$STATUS"
 cd /data
 CFG=/data/config.ini
-WF="/usr/bin/writefreely -c $CFG"
+WF="$WRITEFREELY_BIN -c $CFG"
 q() { mariadb --defaults-file="$MYCNF" -N -e "$1"; }
 
 run() {
